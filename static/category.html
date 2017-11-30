@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>分类管理</title>
+    <link rel="stylesheet" href="/static/css/bootstrap.css">
+    <script src="/static/js/jquery.min.js"></script>
+    <script src="/static/js/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/vue.resource/1.0.3/vue-resource.min.js"></script>
+    <script>
+    function showError(resp) {
+        resp.json().then(function(result) {
+            alert('Error: ' + result.message);
+        });
+    }
+
+    $(function() {
+        var contents = new Vue({
+            el: '#content',
+            http: {
+                timeout: 5000
+            },
+            data: {
+                categorys: [],
+                name: '',
+                sort: '',
+                selected: '',
+                loading: false
+            },
+            created: function() {
+                this.init();
+            },
+            methods: {
+                init: function() {
+                    var that = this;
+                    that.loading = true;
+                    that.$resource('/api/category/list').get().then(function(resp) {
+                        that.loading = false;
+                        resp.json().then(function(result) {
+                            that.categorys = result.categorys;
+                        });
+                    }, function(resp) {
+                        that.loading = false;
+                        showError(resp);
+                    });
+                },
+                create: function() {
+                    var that = this;
+                    var t = {
+                        name: that.name,
+                        sort: that.sort | 999
+                    };
+                    that.$resource('/api/category/save').save(t).then(function(resp) {
+                        resp.json().then(function(result) {
+                            that.categorys.push(result);
+                            that.name = '';
+                            that.sort = '';
+                        });
+                    }, showError);
+                },
+                update: function() {
+                    var that = this;
+                    var t = {
+                        name: that.name,
+                        sort: that.sort | 999
+                    };
+                    that.$resource('/api/category/update/' + that.selected).update(t).then(function(resp) {
+                        resp.json().then(function(r) {
+                            for (i = 0; i < that.categorys.length; i++) {
+                                if (that.categorys[i].id === that.selected) {
+                                    that.categorys[i].name = that.name;
+                                    that.categorys[i].sort = that.sort;
+                                    break;
+                                }
+                            }
+                            that.selected = '';
+                            that.name = '';
+                            that.sort = '';
+                        });
+                    }, function(resp) {
+                        showError(resp);
+                    });
+                },
+                remove: function() {
+                    var that = this;
+                    that.$resource('/api/category/delete/' + that.selected).delete().then(function(resp) {
+                        var i, index = -1;
+                        for (i = 0; i < that.categorys.length; i++) {
+                            if (that.categorys[i].id === that.selected) {
+                                index = i;
+                                break;
+                            }
+                        }
+                        if (index >= 0) {
+                            that.categorys.splice(index, 1);
+                        }
+                    }, showError);
+                }
+            }
+        });
+
+    });
+    </script>
+</head>
+
+<body>
+    <header class="navbar navbar-static-top">
+        <nav class="navbar navbar-inverse">
+            <div class="container-fluid">
+                <!-- Brand and toggle get grouped for better mobile display -->
+                <div class="navbar-header">
+                    <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+                        <span class="sr-only">Toggle navigation</span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                    <a class="navbar-brand" href="#">Mao</a>
+                </div>
+                <!-- Collect the nav links, forms, and other content for toggling -->
+                <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                    <ul class="nav navbar-nav">
+                        <li><a href="/">首页 </a></li>
+                        <li><a href="/static/example.html">例子管理</a></li>
+                        <li class="active"><a href="/static/category.html">分类管理 <span class="sr-only">(current)</span></a></li>
+                    </ul>
+                    <form class="navbar-form navbar-left">
+                        <div class="form-group">
+                            <input type="text" class="form-control" placeholder="分类-关键词">
+                        </div>
+                        <button type="submit" class="btn btn-default">快速查找</button>
+                    </form>
+                </div>
+                <!-- /.navbar-collapse -->
+            </div>
+            <!-- /.container-fluid -->
+        </nav>
+    </header>
+    <div class="container" id="content">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h3 class="panel-title"><span class="glyphicon glyphicon-th-list"></span>分类列表</h3>
+                    </div>
+                    <div class="panel-body">
+                        <p v-if="loading">Loading...</p>
+                        <ol>
+                            <li v-for="t in categorys">
+                                <dl>
+                                    <dt><a>{{ t.name }}</a></dt>
+                                </dl>
+                            </li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h3 class="panel-title"><span class="glyphicon glyphicon-plus"></span>新增分类</h3>
+                    </div>
+                    <div class="panel-body">
+                        <form class="form-horizontal" action="#0" v-on:submit.prevent="create">
+                            <div class="form-group">
+                                <label class="col-sm-4 control-label">分类名称:</label>
+                                <div class="col-sm-8">
+                                    <input type="text" v-model="name" class="form-control" placeholder="">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="col-sm-4 control-label">分类排序:</label>
+                                <div class="col-sm-8">
+                                    <input type="text" v-model="sort" class="form-control" placeholder="">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-default">保存</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h3 class="panel-title"><span class="glyphicon glyphicon-plus"></span>编辑分类</h3>
+                    </div>
+                    <div class="panel-body">
+                        <form class="form-horizontal" action="#0">
+                            <div class="form-group">
+                                <label class="col-sm-4 control-label">选择分类:</label>
+                                <div class="col-sm-8">
+                                    <select class="form-control" v-model="selected">
+                                        <option v-for="t in categorys" v-bind:value="t.id">{{t.name}}</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="col-sm-4 control-label">分类名称:</label>
+                                <div class="col-sm-8">
+                                    <input type="text" v-model="name" class="form-control" placeholder="">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="col-sm-4 control-label">分类排序:</label>
+                                <div class="col-sm-8">
+                                    <input type="text" v-model="sort" class="form-control" placeholder="">
+                                </div>
+                            </div>
+                            <button type="button" v-on:click="update" class="btn btn-default">修改</button>
+                            <button type="button" v-on:click="remove" class="btn btn-default">删除</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer style="background-color:#ddd; padding: 20px 0;">
+        <div class="container">
+            <p>页脚</p>
+        </div>
+    </footer>
+</body>
+
+</html>

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>index</title>
+    <link rel="stylesheet" href="/static/css/bootstrap.css">
+    <script src="/static/js/jquery.min.js"></script>
+    <script src="/static/js/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/vue.resource/1.0.3/vue-resource.min.js"></script>
+    <script>
+    function showError(resp) {
+        resp.json().then(function(result) {
+            alert('Error: ' + result.message);
+        });
+    }
+
+    $(function() {
+        var contents = new Vue({
+            el: '#content',
+            http: {
+                timeout: 5000
+            },
+            data: {
+                categorys: [],
+                examples: [],
+                title: 'All',
+                keyword: '',
+                loading: false
+            },
+            created: function() {
+                this.init();
+            },
+            methods: {
+                init: function() {
+                    var that = this;
+                    that.loading = true;
+                    that.$resource('/api/category/list').get().then(function(resp) {
+                        that.loading = false;
+                        resp.json().then(function(result) {
+                            that.categorys = result.categorys;
+                        });
+                    }, function(resp) {
+                        that.loading = false;
+                        showError(resp);
+                    });
+                    that.$resource('/api/example/list').get().then(function(resp) {
+                        resp.json().then(function(result) {
+                            that.examples = result.examples;
+                        });
+                    }, function(resp) {
+                        showError(resp);
+                    });
+                },
+                list: function(index) {
+                    var that = this;
+                    let category = that.categorys[index];
+                    that.$resource('/api/example/list/' + category.id).get().then(function(resp) {
+                        resp.json().then(function(result) {
+                            that.examples = result.examples;
+                            that.title = category.name;
+                        });
+                    }, function(resp) {
+                        showError(resp);
+                    });
+                },
+                search: function() {
+                    alert(1);
+                    var that = this;
+                    that.$resource('/api/example/search/' + that.keyword).get().then(function(resp) {
+                        resp.json().then(function(result) {
+                            that.examples = result.examples;
+                            that.title = that.keyword;
+                        });
+                    }, showError);
+                },
+                remove: function(index) {
+                    var that = this;
+                    var example = that.examples[index];
+                    var r = confirm("确定删除数据"+ index +"？");
+                    if(r){
+                        that.$resource('/api/example/delete/' + example.id).delete().then(function(resp) {
+                            that.examples.splice(index, 1);
+                        }, showError);
+                    }   
+                },
+                edit: function(index){
+                    localStorage.name = this.examples[index].id;
+                    location.href = 'example.html';
+                }
+            }
+        });
+
+
+        var isearch = new Vue({
+            el: '#search',
+            http: {
+                timeout: 5000
+            },
+            data: {
+                keyword: ''
+            },
+            methods: {
+                search: function() {
+                    if(!this.keyword){
+                        return;
+                    }
+                    var that = this;
+                    that.$resource('/api/example/search/' + that.keyword).get().then(function(resp) {
+                        resp.json().then(function(result) {
+                            contents.examples = result.examples;
+                            contents.title = that.keyword;
+                        });
+                    }, showError);
+                }
+            }
+        });
+    });
+    </script>
+</head>
+
+<body>
+    <header class="navbar navbar-static-top">
+        <nav class="navbar navbar-inverse">
+            <div class="container-fluid">
+                <!-- Brand and toggle get grouped for better mobile display -->
+                <div class="navbar-header">
+                    <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+                        <span class="sr-only">Toggle navigation</span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                    <a class="navbar-brand" href="#">Mao</a>
+                </div>
+                <!-- Collect the nav links, forms, and other content for toggling -->
+                <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                    <ul class="nav navbar-nav">
+                        <li class="active"><a href="/">首页 <span class="sr-only">(current)</span></a></li>
+                        <li><a href="/static/example.html">例子管理</a></li>
+                        <li><a href="/static/category.html">分类管理</a></li>
+                    </ul>
+                    <form id="search" class="navbar-form navbar-left">
+                        <div class="form-group">
+                            <input v-model="keyword" type="text" class="form-control" placeholder="分类-关键词">
+                        </div>
+                        <button v-on:click="search" type="button" class="btn btn-default">快速查找</button>
+                    </form>
+                </div>
+                <!-- /.navbar-collapse -->
+            </div>
+            <!-- /.container-fluid -->
+        </nav>
+    </header>
+    <div class="container" id="content">
+        <div class="row">
+            <div class="col-md-2">
+                <p v-if="loading">Loading...</p>
+                <ul class="list-group">
+                  <li class="list-group-item" v-for="(t,index) in categorys" :key="t.id" v-on:click="list(index)">
+                    <span class="badge">{{t.sort}}</span>
+                    <a>{{ t.name }}</a>
+                  </li>
+                </ul>
+                
+            </div>
+
+            <div class="col-md-10" style="min-height: 500px">
+                <ol class="breadcrumb">
+                  <li><a href="#">查询结果</a></li>
+                  <li><a href="#">{{title}}</a></li>
+                </ol>
+
+                <!-- Table -->
+                <table class="table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>标签</th>
+            <th>描述</th>
+            <th>例子</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(t,index) in examples">
+            <th scope="row">{{index}}</th>
+            <td>{{t.tag}}</td>
+            <td>{{t.description}}</td>
+            <td><code>{{t.demo}}</code></td>
+            <td><a v-on:click="edit(index)">修改</a>|<a v-on:click="remove(index)">删除</a></td>
+          </tr>
+        </tbody>
+      </table>
+            </div>
+            
+        </div></div>
+    <footer style="background-color:#ddd; padding: 20px 0;">
+        <div class="container">
+            <p>页脚</p>
+        </div>
+    </footer>
+</body>
+</html>

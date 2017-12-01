@@ -11,10 +11,10 @@
     <script src="https://cdn.jsdelivr.net/vue.resource/1.0.3/vue-resource.min.js"></script>
     <style type="text/css">
     .cut {
-        overflow:hidden;
-        text-overflow:ellipsis;
-        white-space: nowrap; 
-        }
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
     </style>
     <script>
     function showError(resp) {
@@ -34,6 +34,9 @@
                 examples: [],
                 title: 'All',
                 keyword: '',
+                currentpage: 1,
+                totalpage: '',
+                showpage: [],
                 loading: false
             },
             created: function() {
@@ -52,18 +55,37 @@
                         that.loading = false;
                         showError(resp);
                     });
-                    that.$resource('/api/example/list').get().then(function(resp) {
+                    that.listbypage();
+                },
+                listbypage: function(page){
+                    if(page){
+                        this.currentpage = page;
+                    }
+                    var that = this;
+                    that.$resource('/api/example/list/' + that.currentpage).get().then(function(resp) {
                         resp.json().then(function(result) {
                             that.examples = result.examples;
+                            that.totalpage = parseInt(result.total/10) + 1;
+                            var current = that.currentpage;
+                            var total = that.totalpage;
+                            var start = current - 2 < 1 ? 1 : current - 2;
+                            var end = current + 2 > total ? total : current + 2;
+                            if(end < 5) end = 5;
+                            if(start > total - 5) start = total - 5;
+                            var temp = [];
+                            for(;start <= end;start++){
+                                temp.push(start);
+                            }
+                            that.showpage = temp;
                         });
                     }, function(resp) {
                         showError(resp);
                     });
                 },
-                list: function(index) {
+                listbycat: function(index) {
                     var that = this;
                     let category = that.categorys[index];
-                    that.$resource('/api/example/list/' + category.id).get().then(function(resp) {
+                    that.$resource('/api/example/category/' + category.id).get().then(function(resp) {
                         resp.json().then(function(result) {
                             that.examples = result.examples;
                             that.title = category.name;
@@ -85,14 +107,14 @@
                 remove: function(index) {
                     var that = this;
                     var example = that.examples[index];
-                    var r = confirm("确定删除数据"+ index +"？");
-                    if(r){
+                    var r = confirm("确定删除数据" + index + "？");
+                    if (r) {
                         that.$resource('/api/example/delete/' + example.id).delete().then(function(resp) {
                             that.examples.splice(index, 1);
                         }, showError);
-                    }   
+                    }
                 },
-                edit: function(index){
+                edit: function(index) {
                     localStorage.name = this.examples[index].id;
                     location.href = 'example.html';
                 }
@@ -110,7 +132,7 @@
             },
             methods: {
                 search: function() {
-                    if(!this.keyword){
+                    if (!this.keyword) {
                         return;
                     }
                     var that = this;
@@ -125,11 +147,11 @@
         });
     });
 
-    function seedemo(that){
+    function seedemo(that) {
         var span = $(that).next();
-        if(span.html() != ''){
+        if (span.html() != '') {
             span.html('');
-        }else{
+        } else {
             var htmlstr = $(that).prev().val();
             span.html(htmlstr);
         }
@@ -175,51 +197,67 @@
             <div class="col-md-2">
                 <p v-if="loading">Loading...</p>
                 <ul class="list-group">
-                  <li class="list-group-item" v-for="(t,index) in categorys" :key="t.id" v-on:click="list(index)">
-                    <span class="badge">{{t.sort}}</span>
-                    <a>{{ t.name }}</a>
-                  </li>
+                    <li class="list-group-item" v-for="(t,index) in categorys" :key="t.id" v-on:click="listbycat(index)">
+                        <span class="badge">{{t.sort}}</span>
+                        <a>{{ t.name }}</a>
+                    </li>
                 </ul>
-                
             </div>
-
             <div class="col-md-10" style="min-height: 500px">
                 <ol class="breadcrumb">
-                  <li><a href="#" onclick="change">查询结果</a></li>
-                  <li><a href="#">{{title}}</a></li>
+                    <li><a href="#" onclick="change">查询结果</a></li>
+                    <li><a href="#">{{title}}</a></li>
                 </ol>
-
                 <!-- Table -->
                 <table class="table table-hover">
-        <thead>
-          <tr>
-            <th width="5%">#</th>
-            <th width="15%">标签</th>
-            <th width="30%">描述</th>
-            <th width="40%">例子</th>
-            <th width="10%">操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(t,index) in examples">
-            <th scope="row">{{index}}</th>
-            <td>{{t.tag}}</td>
-            <td>{{t.description}}</td>
-            <td><textarea style="display: none;">{{t.demo}}</textarea>
-                <a onclick="seedemo(this)" >查看</a>
-                <span></span>
-            </td>
-            <td><a v-on:click="edit(index)">修改</a>|<a v-on:click="remove(index)">删除</a></td>
-          </tr>
-        </tbody>
-      </table>
+                    <thead>
+                        <tr>
+                            <th width="5%">#</th>
+                            <th width="15%">标签</th>
+                            <th width="30%">描述</th>
+                            <th width="40%">例子</th>
+                            <th width="10%">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(t,index) in examples">
+                            <th scope="row">{{index}}</th>
+                            <td>{{t.tag}}</td>
+                            <td>{{t.description}}</td>
+                            <td>
+                                <textarea style="display: none;">{{t.demo}}</textarea>
+                                <a onclick="seedemo(this)">查看</a>
+                                <pre></pre>
+                            </td>
+                            <td><a v-on:click="edit(index)">修改</a>|<a v-on:click="remove(index)">删除</a></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <nav aria-label="Page navigation" style="float:right;">
+                    <ul class="pagination">
+                        <li v-if="currentpage>1" v-on:click="currentpage--,listbypage()">
+                            <a href="#" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                              </a>
+                        </li>
+                        <li v-for="index in showpage" v-bind:class="{'active':currentpage == index}">
+                        <a v-on:click="listbypage(index)" href="#">{{index}}</a>
+                        </li>
+                        <li v-if="currentpage < totalpage" v-on:click="currentpage++,listbypage()">
+                            <a href="#" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                              </a>
+                        </li>
+                    </ul>
+                </nav>
             </div>
-            
-        </div></div>
+        </div>
+    </div>
     <footer style="background-color:#ddd; padding: 20px 0;">
         <div class="container">
             <p>页脚</p>
         </div>
     </footer>
 </body>
+
 </html>

@@ -65,14 +65,22 @@ module.exports = {
     },
 
     
-    'GET /api/example/list': async (ctx, next) => {
-        var examples = await Example.findAll();
+    'GET /api/example/list/:page': async (ctx, next) => {
+        var currentPage = ctx.params.page || 1;
+        var pageSize = ctx.params.pagesize || 5;
+        var offset = (currentPage - 1) * pageSize;
+
+        var examples = await Example.findAndCountAll({
+            offset: offset,
+            limit: pageSize
+        });
         ctx.rest({
-            examples: examples
+            examples: examples.rows,
+            total: examples.count
         });
     },
 
-    'GET /api/example/list/:id': async (ctx, next) => {
+    'GET /api/example/category/:id': async (ctx, next) => {
         var examples = await Example.findAll({
             where: {
                 category: ctx.params.id

@@ -50,7 +50,7 @@
                     var that = this;
                     var t = {
                         name: that.name,
-                        sort: that.sort | 999
+                        sort: that.sort || 999
                     };
                     that.$resource('/api/category/save').save(t).then(function(resp) {
                         resp.json().then(function(result) {
@@ -64,7 +64,7 @@
                     var that = this;
                     var t = {
                         name: that.name,
-                        sort: that.sort | 999
+                        sort: that.sort || 999
                     };
                     that.$resource('/api/category/update/' + that.selected).update(t).then(function(resp) {
                         resp.json().then(function(r) {

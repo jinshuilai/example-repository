@@ -9,6 +9,13 @@
     <script src="/static/js/jquery.min.js"></script>
     <script src="/static/js/vue.js"></script>
     <script src="https://cdn.jsdelivr.net/vue.resource/1.0.3/vue-resource.min.js"></script>
+    <style type="text/css">
+    .cut {
+        overflow:hidden;
+        text-overflow:ellipsis;
+        white-space: nowrap; 
+        }
+    </style>
     <script>
     function showError(resp) {
         resp.json().then(function(result) {
@@ -117,6 +124,16 @@
             }
         });
     });
+
+    function seedemo(that){
+        var span = $(that).next();
+        if(span.html() != ''){
+            span.html('');
+        }else{
+            var htmlstr = $(that).prev().val();
+            span.html(htmlstr);
+        }
+    }
     </script>
 </head>
 
@@ -168,19 +185,19 @@
 
             <div class="col-md-10" style="min-height: 500px">
                 <ol class="breadcrumb">
-                  <li><a href="#">查询结果</a></li>
+                  <li><a href="#" onclick="change">查询结果</a></li>
                   <li><a href="#">{{title}}</a></li>
                 </ol>
 
                 <!-- Table -->
-                <table class="table">
+                <table class="table table-hover">
         <thead>
           <tr>
-            <th>#</th>
-            <th>标签</th>
-            <th>描述</th>
-            <th>例子</th>
-            <th>操作</th>
+            <th width="5%">#</th>
+            <th width="15%">标签</th>
+            <th width="30%">描述</th>
+            <th width="40%">例子</th>
+            <th width="10%">操作</th>
           </tr>
         </thead>
         <tbody>
@@ -188,7 +205,10 @@
             <th scope="row">{{index}}</th>
             <td>{{t.tag}}</td>
             <td>{{t.description}}</td>
-            <td><code>{{t.demo}}</code></td>
+            <td><textarea style="display: none;">{{t.demo}}</textarea>
+                <a onclick="seedemo(this)" >查看</a>
+                <span></span>
+            </td>
             <td><a v-on:click="edit(index)">修改</a>|<a v-on:click="remove(index)">删除</a></td>
           </tr>
         </tbody>

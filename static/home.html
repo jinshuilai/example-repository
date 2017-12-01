@@ -66,17 +66,7 @@
                         resp.json().then(function(result) {
                             that.examples = result.examples;
                             that.totalpage = parseInt(result.total/10) + 1;
-                            var current = that.currentpage;
-                            var total = that.totalpage;
-                            var start = current - 2 < 1 ? 1 : current - 2;
-                            var end = current + 2 > total ? total : current + 2;
-                            if(end < 5) end = 5;
-                            if(start > total - 5) start = total - 5;
-                            var temp = [];
-                            for(;start <= end;start++){
-                                temp.push(start);
-                            }
-                            that.showpage = temp;
+                            that.calcu();
                         });
                     }, function(resp) {
                         showError(resp);
@@ -89,20 +79,12 @@
                         resp.json().then(function(result) {
                             that.examples = result.examples;
                             that.title = category.name;
+                            that.totalpage = parseInt(result.total/10) + 1;
+                            that.calcu();
                         });
                     }, function(resp) {
                         showError(resp);
                     });
-                },
-                search: function() {
-                    alert(1);
-                    var that = this;
-                    that.$resource('/api/example/search/' + that.keyword).get().then(function(resp) {
-                        resp.json().then(function(result) {
-                            that.examples = result.examples;
-                            that.title = that.keyword;
-                        });
-                    }, showError);
                 },
                 remove: function(index) {
                     var that = this;
@@ -117,6 +99,18 @@
                 edit: function(index) {
                     localStorage.name = this.examples[index].id;
                     location.href = 'example.html';
+                },
+                calcu: function(){
+                    var that = this;
+                    var current = that.currentpage;
+                    var total = that.totalpage;
+                    var start = current - 2 < 1 ? 1 : current - 2;
+                    var end = current + 2 > total ? total : current + 2;
+                    var temp = [];
+                    for(;start <= end;start++){
+                        temp.push(start);
+                    }
+                    that.showpage = temp;
                 }
             }
         });

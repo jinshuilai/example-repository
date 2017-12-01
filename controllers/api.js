@@ -81,13 +81,20 @@ module.exports = {
     },
 
     'GET /api/example/category/:id': async (ctx, next) => {
-        var examples = await Example.findAll({
+        var currentPage = ctx.params.page || 1;
+        var pageSize = ctx.params.pagesize || 5;
+        var offset = (currentPage - 1) * pageSize;
+
+        var examples = await Example.findAndCountAll({
             where: {
                 category: ctx.params.id
-            }
+            },
+            offset: offset,
+            limit: pageSize
         });
         ctx.rest({
-            examples: examples
+            examples: examples.rows,
+            total: examples.count
         });
     },
 
